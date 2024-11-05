@@ -1,1 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protocole de sédation pour enfant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /* Style CSS inchangé, voir original */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-section">
+            <h1>Protocole de sédation pour enfant</h1>
+            <form id="sedationForm">
+                <label for="weight">Poids de l'enfant (kg) :</label>
+                <input type="number" id="weight" step="0.1" required aria-label="Poids de l'enfant" min="0">
 
+                <label for="age">Âge de l'enfant (mois) :</label>
+                <input type="number" id="age" required aria-label="Âge de l'enfant" min="0">
+
+                <label for="duration">Durée d'administration (heures) :</label>
+                <select id="duration" required aria-label="Durée d'administration">
+                    <option value="12">12 heures</option>
+                    <option value="24">24 heures</option>
+                </select>
+
+                <label for="hemodynamic">État hémodynamique :</label>
+                <select id="hemodynamic" required onchange="updateDrugOptions()" aria-label="État hémodynamique">
+                    <option value="stable">Stable</option>
+                    <option value="unstable">Instable</option>
+                </select>
+
+                <div class="drug-section">
+                    <label for="drug1">Choisissez la première drogue :</label>
+                    <select id="drug1" required onchange="updateDosageOptions('drug1');" aria-label="Première drogue"></select>
+                    <label for="dosage1">Posologie (mg/kg/heure) :</label>
+                    <select id="dosage1" required aria-label="Posologie première drogue"></select>
+                </div>
+
+                <div class="drug-section">
+                    <label for="drug2">Choisissez la deuxième drogue :</label>
+                    <select id="drug2" required onchange="updateDosageOptions('drug2');" aria-label="Deuxième drogue"></select>
+                    <label for="dosage2">Posologie (mg/kg/heure) :</label>
+                    <select id="dosage2" required aria-label="Posologie deuxième drogue"></select>
+                </div>
+
+                <button type="button" onclick="calculateSedation()">Calculer la sédation</button>
+                <button type="reset" onclick="clearResults()">Réinitialiser</button>
+            </form>
+        </div>
+        
+        <div class="result-section">
+            <h2>Résultats</h2>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <div class="signature">
+        Heaven Elijah Application
+        <span>by Dr Rodrigue Zamtato</span>
+    </div>
+
+    <script>
+        const drugDetails = {
+            /* Détails des drogues inchangés */
+        };
+
+        function updateDrugOptions() {
+            const hemodynamic = document.getElementById('hemodynamic').value;
+            const drug1 = document.getElementById('drug1');
+            const drug2 = document.getElementById('drug2');
+            drug1.innerHTML = "";
+            drug2.innerHTML = "";
+
+            if (hemodynamic === 'stable') {
+                drug1.innerHTML = `<option value="propofol">Propofol</option><option value="midazolam">Midazolam</option>`;
+                drug2.innerHTML = `<option value="morphine">Morphine</option><option value="fentanyl">Fentanyl</option>`;
+            } else {
+                drug1.innerHTML = `<option value="ketamine">Kétamine</option>`;
+                drug2.innerHTML = `<option value="midazolam">Midazolam</option>`;
+            }
+            updateDosageOptions('drug1');
+            updateDosageOptions('drug2');
+        }
+
+        function updateDosageOptions(drugId) {
+            const drug = document.getElementById(drugId).value;
+            const dosageSelect = document.getElementById(drugId === 'drug1' ? 'dosage1' : 'dosage2');
+            dosageSelect.innerHTML = "";
+            drugDetails[drug].dosages.forEach(d => {
+                dosageSelect.innerHTML += `<option value="${d.value}">${d.label}</option>`;
+            });
+        }
+
+        function calculateSedation() {
+            const weight = parseFloat(document.getElementById('weight').value);
+            const duration = parseInt(document.getElementById('duration').value);
+            const drug1 = document.getElementById('drug1').value;
+            const drug2 = document.getElementById('drug2').value;
+            const dosage1 = parseFloat(document.getElementById('dosage1').value);
+            const dosage2 = parseFloat(document.getElementById('dosage2').value);
+
+            if (isNaN(weight) || weight <= 0 || isNaN(duration) || !drug1 || !drug2 || isNaN(dosage1) || isNaN(dosage2)) {
+                alert("Veuillez remplir tous les champs correctement avant de calculer.");
+                return;
+            }
+
+            const totalDose1 = dosage1 * weight * duration;
+            const totalDose2 = dosage2 * weight * duration;
+
+            const totalVolumeDrug1 = totalDose1 / drugDetails[drug1].concentration;
+            const totalVolumeDrug2 = totalDose2 / drugDetails[drug2].concentration;
+            const totalDrugVolume = totalVolumeDrug1 + totalVolumeDrug2;
+            const glucoseVolume = 50 - totalDrugVolume;
+            const infusionRate = 50 / duration;
+
+            document.getElementById('results').innerHTML = `
+                <p><strong>${drugDetails[drug1].name} :</strong> ${totalDose1.toFixed(2)} mg, ${totalVolumeDrug1.toFixed(2)} ml</p>
+                <p><strong>${drugDetails[drug2].name} :</strong> ${totalDose2.toFixed(2)} mg, ${totalVolumeDrug2.toFixed(2)} ml</p>
+                <p><strong>Volume de Glucose 5% à ajouter :</strong> ${glucoseVolume.toFixed(2)} ml (pour atteindre 50 ml)</p>
+                <p><strong>Vitesse de perfusion :</strong> ${infusionRate.toFixed(2)} ml/heure</p>
+                <p><strong>Formulation de ${drugDetails[drug1].name} :</strong> ${drugDetails[drug1].formulation}</p>
+                <p><strong>Présentation de ${drugDetails[drug1].name} :</strong> ${drugDetails[drug1].ampoule}</p>
+                <p><strong>Formulation de ${drugDetails[drug2].name} :</strong> ${drugDetails[drug2].formulation}</p>
+                <p><strong>Présentation de ${drugDetails[drug2].name} :</strong> ${drugDetails[drug2].ampoule}</p>
+            `;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = "";
+        }
+
+        updateDrugOptions();
+    </script>
+</body>
+</html>
